@@ -1,0 +1,123 @@
+{
+  "project": {
+    "name": "image-utils",
+    "version": "0.1.0"
+  },
+
+  "paths": {
+    "src": "src",
+    "build": "build",
+    "images": "images",
+    "svg": "svg",
+    "sprite": "sprite",
+    "stylesheet": "stylesheet",
+    "resizeimg": "resizeimg",
+    "nsg": "nsg",
+    "svg-sprite": "svg-sprite"
+  },
+
+  "sprite": {
+  },
+
+  "nsg": {
+    "__sprite_src": "src/media/images/sprites",
+    "__sprite_target": "build/nsg/sprites",
+    "sprite_prefix": "nsg-",
+    "sprite_suffix": "",
+    "layout": "packed",
+    "layout_": "diagonal",
+    "layout_": "horizontal",
+    "layout_": "vertical",
+    "sprite_extension": ".png",
+    "stylesheet": "scss",
+    "stylesheet_target": "build/nsg/scss",
+    "stylesheet_prefix": "_nsg-",
+    "stylesheet_suffix": "",
+    "stylesheet_extension": ".scss",
+    "compositor": "jimp"
+  },
+
+  "svgsprite": {
+    "src": "src/media/svg/sprites/**/*.svg",
+    "target": "build",
+
+    "config": {
+      "log": "debug",
+
+      "shape": {
+        "id": {
+          "separator": "--",
+          "generator": "%s",
+          "pseudo": "~",
+          "whitespace": "_"
+        },
+        "dimension": {
+          "maxWidth": 2000,
+          "maxHeight": 2000,
+          "precision": 2,
+          "attributes": false
+        },
+        "spacing": {
+          "padding": 1,
+          "box": "content"
+        },
+        "transform": ["svgo"],
+        "meta": null,
+        "align": null
+      },
+
+      "svg": {
+        "xmlDeclaration": true,
+        "doctypeDeclaration": true,
+        "namespaceIDs": true,
+        "namespaceClassnames": true,
+        "dimensionAttributes": true,
+        "rootAttributes": "",
+        "precision": -1,
+        "transform": []
+      },
+
+      "mode": {
+        "view": {
+          "dest": "./assets/scss",
+          "sprite": "../../assets/img/svg-sprites/svg-sprite.view.svg",
+          "dimensions": "-dims",
+          "layout": "horizontal",
+          "layout_": "vertical",
+          "layout_": "diagonal",
+          "common": "",
+          "mixin": "sprite",
+          "bust": false,
+          "render": {
+            "scss": {
+              "dest": "svg-sprites/_svg-sprite.view.scss"
+            }
+          },
+          "example": false
+        }
+      },
+
+      "variables": {
+        "mapname": "icons"
+      }
+    }
+  },
+
+  "resizeimg": {
+    "path": "src/media/images/resizeimg/",
+    "src": "src/media/images/resizeimg/**/{*.bmp,*.jpg,*.jpeg,*.png}",
+    "target": "build/resizeimg",
+    "prefix": "scaled-",
+    "suffix": "",
+    "options": {
+      "createFolders": true
+    },
+    "sizes": {
+      "standard": {
+        "width": 640,
+        "height": 480
+      }
+    }
+  }
+
+}
