@@ -7,39 +7,60 @@
   "paths": {
     "src": "src",
     "build": "build",
-    "images": "images",
+    "assets": "assets",
+    "media": "media",
+    "image": "image",
     "svg": "svg",
     "sprite": "sprite",
     "stylesheet": "stylesheet",
     "resizeimg": "resizeimg",
     "nsg": "nsg",
-    "svg-sprite": "svg-sprite"
+    "svgsprite": "svg-sprite"
   },
 
   "sprite": {
   },
 
   "nsg": {
-    "__sprite_src": "src/media/images/sprites",
-    "__sprite_target": "build/nsg/sprites",
-    "sprite_prefix": "nsg-",
-    "sprite_suffix": "",
+    "prefix": "nsg-",
+    "suffix": "-nsg",
     "layout": "packed",
     "layout_": "diagonal",
     "layout_": "horizontal",
     "layout_": "vertical",
-    "sprite_extension": ".png",
+    "spriteExtension": ".png",
     "stylesheet": "scss",
-    "stylesheet_target": "build/nsg/scss",
-    "stylesheet_prefix": "_nsg-",
-    "stylesheet_suffix": "",
-    "stylesheet_extension": ".scss",
-    "compositor": "jimp"
+    "stylesheetExtension": ".scss",
+    "compositor": "jimp",
+    "pixelRation": 1
+  },
+
+
+  "resizeimg": {
+    "prefix": "scaled-",
+    "suffix": "-scaled",
+    "createFolders": true,
+    "sizes": {
+      "standard": {
+        "width": 640,
+        "height": 480
+      }
+    }
   },
 
   "svgsprite": {
-    "src": "src/media/svg/sprites/**/*.svg",
-    "target": "build",
+    "_src": "src/media/svg/sprites/**/*.svg",
+    "_target": "build",
+    "prefix": "prefix-",
+    "suffix": "-suffix",
+    "layout": "horizontal",
+    "layout_": "vertical",
+    "layout_": "diagonal",
+    "dimensions": "-dims",
+
+
+
+
 
     "config": {
       "log": "debug",
@@ -99,23 +120,6 @@
 
       "variables": {
         "mapname": "icons"
-      }
-    }
-  },
-
-  "resizeimg": {
-    "path": "src/media/images/resizeimg/",
-    "src": "src/media/images/resizeimg/**/{*.bmp,*.jpg,*.jpeg,*.png}",
-    "target": "build/resizeimg",
-    "prefix": "scaled-",
-    "suffix": "",
-    "options": {
-      "createFolders": true
-    },
-    "sizes": {
-      "standard": {
-        "width": 640,
-        "height": 480
       }
     }
   }

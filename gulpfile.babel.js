@@ -1,12 +1,13 @@
 'use strict';
 
 import gulp     from 'gulp';
+import plugins  from 'gulp-load-plugins';
 import fs       from 'fs';
 import path     from 'path';
 import mkdirp   from 'make-dir';
 //import yargs    from 'yargs';
 // TODO: YAML wieder aktivieren, da die YAML config self references und nested values verwenden kann
-import yaml     from 'js-yaml';
+//import yaml     from 'js-yaml';
 import nsg      from 'node-sprite-generator';
 import promise  from 'es6-promise';
 import rimraf   from 'rimraf';
@@ -20,10 +21,26 @@ const resizeImage   = require('resize-img');
 // Promise Definition for Tasks without Streams or existing Promises
 const Promise = promise.Promise;
 
+// Load all Gulp plugins into one variable
+const $ = plugins();
+
 // Load settings from settings.yml
 // const { COMPATIBILITY, PORT, UNCSS_OPTIONS, PATHS } = loadConfig();
 const config = loadConfig();
 
+
+
+/* ==================================================================================================================
+ *  # Paths
+ * ================================================================================================================== */
+
+let srcResizeimgPath = path.join(config.paths.src, config.paths.image, config.paths.resizeimg);
+let srcImageSpritePath = path.join(config.paths.src, config.paths.image, config.paths.sprite);
+let srcSvgSpritePath = path.join(config.paths.src, config.paths.svg, config.paths.sprite);
+
+let targetResizeimgPath = path.join(config.paths.build, config.paths.resizeimg);
+let targetNsgPath = path.join(config.paths.build, config.paths.nsg);
+let targetSvgspritePath = path.join(config.paths.build, config.paths.svgsprite);
 
 
 /* ==================================================================================================================
@@ -88,8 +105,7 @@ function taskCleanBuild(cb) {
  * This happens every time a build starts
  */
 function taskCleanBuildNsgSprite(cb) {
-    rimraf.sync(config.paths.dist.path);
-    rimraf.sync(config.paths.build.path);
+    rimraf.sync(targetNsgPath);
     cb();
 }
 
@@ -100,8 +116,7 @@ function taskCleanBuildNsgSprite(cb) {
  * This happens every time a build starts
  */
 function taskCleanBuildResizeimgImages(cb) {
-    rimraf.sync(config.paths.dist.path);
-    rimraf.sync(config.paths.build.path);
+    rimraf.sync(targetResizeimgPath);
     cb();
 }
 
@@ -112,8 +127,7 @@ function taskCleanBuildResizeimgImages(cb) {
  * This happens every time a build starts
  */
 function taskCleanBuildSvgspriteSprite(cb) {
-    rimraf.sync(config.paths.dist.path);
-    rimraf.sync(config.paths.build.path);
+    rimraf.sync(targetSvgspritePath);
     cb();
 }
 
@@ -126,8 +140,9 @@ function taskCleanBuildSvgspriteSprite(cb) {
  * @param cb
  */
 function taskGenerateResizeimgImages(cb) {
+    let srcImages = path.join(srcResizeimgPath, '**', '{*.bmp,*.jpg,*.jpeg,*.png}');
     let files = glob.sync(
-        config.resizeimg.src,
+        srcImages,
         {
             "absolute": true,
             "ignore": ['**/*.ignore/**']
@@ -135,17 +150,22 @@ function taskGenerateResizeimgImages(cb) {
     );
 
     for (let file of files) {
+        log(`file: ${file}`);
+
         if (typechecks.isNotEmpty(file)) {
-            let indexRelativPath = file.indexOf(config.resizeimg.path);
+            let indexRelativPath = file.indexOf(srcResizeimgPath);
+            log(`indexRelativPath: ${indexRelativPath}`);
 
             if (indexRelativPath > -1) {
                 let absolutPathPrefix = "";
                 if (indexRelativPath > 0) {
                     absolutPathPrefix = file.substring(0, indexRelativPath);
                 }
+                log(`absolutPathPrefix: ${absolutPathPrefix}`);
 
                 if (file.length > indexRelativPath) {
-                    let filename = file.substring(indexRelativPath + config.resizeimg.path.length);
+                    let filename = file.substring(indexRelativPath + srcResizeimgPath.length);
+                    log(`filename: ${filename}`);
 
                     for( let dimensionKey in config.resizeimg.sizes ) {
                         let indexExtension = filename.lastIndexOf('.');
@@ -165,7 +185,6 @@ function taskGenerateResizeimgImages(cb) {
                                         continue;
                                     }
 
-
                                     // set auto dimension for missing config
                                     if (!bHasWidth) {
                                         // dimension.width = -1;
@@ -178,39 +197,49 @@ function taskGenerateResizeimgImages(cb) {
 
 
                                     // create targetFolder
-                                    let targetPath = path.join(absolutPathPrefix, config.resizeimg.target);
+                                    let bCreateFolders = typechecks.isBoolean(config.resizeimg.createFolders) ? config.resizeimg.createFolders : false;
+
+                                    let targetPath = path.join(absolutPathPrefix, targetResizeimgPath);
                                     let subFolder = "";
 
                                     // SubFolder check
-                                    let subFoldersEndIndex = filename.lastIndexOf('/');
+                                    let subFoldersEndIndex = filename.lastIndexOf(path.sep) + 1;
                                     if (subFoldersEndIndex > -1) {
                                         subFolder = filename.substring(0, subFoldersEndIndex);
                                     }
 
                                     targetPath = path.join(targetPath, subFolder);
-                                    if (typechecks.isTrue(config.resizeimg.options.createFolders)) {
+                                    if (bCreateFolders) {
                                         targetPath = path.join(targetPath, dimensionKey);
                                     }
+                                    log(`targetPath: ${targetPath}`);
                                     ensureFolder(targetPath);
 
 
                                     // create Filename
-                                    let targetFilename = "";
+                                    let targetFilename = config.resizeimg.prefix || "";
+
                                     if (subFoldersEndIndex > -1) {
-                                        targetFilename = filename.substring(subFoldersEndIndex, indexExtension);
+                                        targetFilename += filename.substring(subFoldersEndIndex, indexExtension);
                                     }
                                     else {
-                                        targetFilename = filename.substring(0, indexExtension);
+                                        targetFilename += filename.substring(0, indexExtension);
                                     }
 
-                                    if (typechecks.isFalse(config.resizeimg.options.createFolders)) {
+                                    if (!bCreateFolders) {
                                         targetFilename += '_';
                                         targetFilename += dimensionKey;
                                     }
 
+                                    if (typechecks.isNotEmpty(config.resizeimg.suffix)) {
+                                        targetFilename += config.resizeimg.suffix;
+                                    }
+
                                     targetFilename += filename.substring(indexExtension);
+                                    log(`targetFilename: ${targetFilename}`);
 
                                     let targetFile = path.join(targetPath, targetFilename);
+                                    log(`targetFile: ${targetFile}`);
 
 
                                     // create resizeimg options
@@ -267,9 +296,7 @@ function taskGenerateNsgSprites(cb) {
 function generateNsgSprite(flagSingleFileSprite, cb) {
     flagSingleFileSprite = typechecks.isBoolean(flagSingleFileSprite) ? flagSingleFileSprite : true;
 
-let srcPath = path.join(config.paths.src, config.paths.images, config.paths.sprites);
-
-    let spriteSources = glob.sync(path.join(srcPath, '*'), {
+    let spriteSources = glob.sync(path.join(srcImageSpritePath, '*'), {
         "ignore": ['**/*.ignore']
 
     })
@@ -342,27 +369,36 @@ function executeNsg(spriteName, spriteSources) {
     return new Promise(function(resolve, reject) {
         log(`Start generating sprite for '${spriteName}'.`);
 
-let targetPath = path.join(config.paths.build, config.paths.nsg);
+        let prefix = config.nsg.prefix || '';
+        let suffix = config.nsg.suffix || '';
 
+        let spriteExtension = config.nsg.spriteExtension || '.png';
+        let spriteFilename = `${prefix}${spriteName}${suffix}${spriteExtension}`;
+        let spritePath = path.join(targetNsgPath, config.paths.sprite, spriteFilename);
 
-        let spriteFilename = `${config.nsg.sprite_prefix}${spriteName}${config.nsg.sprite_suffix}.png`;
-        let spritePath = path.join(targetPath, config.paths.sprites, spriteFilename);
-        let stylesheetFilename =`${config.nsg.stylesheet_prefix}${spriteName}${config.nsg.stylesheet_suffix}${config.nsg.stylesheet_extension}`;
-        let stylesheetPath = path.join(targetPath, config.paths.stylesheet, stylesheetFilename);
-        let stylesheetPrefix = `-${config.nsg.sprite_prefix}${spriteName}${config.nsg.sprite_suffix}-`;
-        let stylesheetSpriteUrl = `src/assets/media/image/sprite/${spriteFilename}`;
+        let stylesheet = config.nsg.stylesheet || 'scss';
+        let stylesheetExtension = config.nsg.stylesheetExtension || '.scss';
+        let stylesheetFilename =`_${prefix}${spriteName}${suffix}${stylesheetExtension}`;
+        let stylesheetPath = path.join(targetNsgPath, config.paths.stylesheet, stylesheetFilename);
+        let stylesheetPrefix = `-${prefix}${spriteName}${suffix}-`;
+        let stylesheetSpriteUrl = path.join(config.paths.src, config.paths.assets, config.paths.media, config.paths.image, config.paths.sprite, spriteFilename);
+
+        let pixelRatio = typechecks.isNumeric(config.nsg.pixelRatio) ? config.nsg.pixelRatio : 1;
+        let compositor = config.nsg.compositor || 'jimp';
+        let layout = config.nsg.layout || 'packed';
 
         const nsgConfig = {
             spritePath: spritePath,
             src: spriteSources,
-            stylesheet: config.nsg.stylesheet,
+            stylesheet: stylesheet,
             stylesheetPath: stylesheetPath,
             stylesheetOptions: {
                 prefix: stylesheetPrefix,
+                pixelRatio: pixelRatio,
                 spritePath: stylesheetSpriteUrl
             },
-            compositor: config.nsg.compositor,
-            layout: config.nsg.layout,
+            compositor: compositor,
+            layout: layout,
             layoutOptions: {
                 padding: 30
             }
@@ -391,34 +427,41 @@ let targetPath = path.join(config.paths.build, config.paths.nsg);
  * @returns {*}
  */
 function taskGenerateSvgSpriteSprite() {
-    return gulp.src(config.svgsprite.src, {
+    let prefix = config.svgsprite.prefix || ''
+    let suffix = config.svgsprite.suffix || ''
+    let layout = config.svgsprite.layout || 'horizontal';
+    let dimensions = config.svgsprite.dimensions || '-dims';
+
+    let srcSvgs = path.join(srcSvgSpritePath, '**', '*.svg');
+
+    return gulp.src(srcSvgs, {
         "ignore": ['**/*.ignore/**']
     }).pipe($.svgSprite({
         dest: './',
         bust: false,
         mode: {
             css: {
-                sprite: "sprites/sprite.css.svg",
-                layout: config.svgsprite.layout,
+                sprite: path.join(targetSvgspritePath, 'sprite.css.svg'),
+                layout: layout,
                 prefix: ".svgsprite-%s",
-                dimensions: "-dims",
+                dimensions: dimensions,
                 mixin: 'sprite',
                 render: {
                     css: {
-                        dest: 'css/_svg-sprite.css'
+                        dest: path.join('css', '_svg-sprite.css')
                     },
                     scss: {
-                        dest: 'scss/_svg-sprite.scss'
+                        dest: path.join('scss', '_svg-sprite.scss')
                     },
                     less: {
-                        dest: 'less/_svg-sprite.less'
+                        dest: path.join('less', '_svg-sprite.less')
                     },
                     styl: {
-                        dest: 'styl/_svg-sprite.styl'
+                        dest: path.join('styl', '_svg-sprite.styl')
                     }
                 },
                 example: {
-                    dest: 'html/svg-sprite-example.html'
+                    dest: path.join('html', 'svg-sprite-example.html')
                 }
             },
         },
@@ -428,7 +471,7 @@ function taskGenerateSvgSpriteSprite() {
                 box: 'padding'
             }
         }
-    })).pipe(gulp.dest('build/svg-sprites'));
+    })).pipe(gulp.dest(targetSvgspritePath));
 }
 
 
