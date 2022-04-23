@@ -15,7 +15,8 @@
     "stylesheet": "stylesheet",
     "resizeimg": "resizeimg",
     "nsg": "nsg",
-    "svgsprite": "svg-sprite"
+    "svgsprite": "svg-sprite",
+    "template": "template"
   },
 
   "sprite": {
@@ -49,14 +50,18 @@
   },
 
   "svgsprite": {
-    "_src": "src/media/svg/sprites/**/*.svg",
-    "_target": "build",
+    "docs": [
+      "https://github.com/svg-sprite/svg-sprite/blob/HEAD/docs/configuration.md",
+      "https://github.com/svg-sprite/svg-sprite/blob/3fa32f670ac6360b7009dabdb82b634a2c40231d/docs/templating.md"
+    ],
     "prefix": "prefix-",
     "suffix": "-suffix",
-    "layout": "horizontal",
-    "layout_": "vertical",
-    "layout_": "diagonal",
-    "dimensions": "-dims",
+    "layout": "packed",
+    "_layout": "horizontal",
+    "_layout": "vertical",
+    "_layout": "diagonal",
+    "_layout": "packed",
+    "dimensions": "--dimensions",
 
 
 

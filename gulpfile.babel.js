@@ -38,6 +38,8 @@ let srcResizeimgPath = path.join(config.paths.src, config.paths.image, config.pa
 let srcImageSpritePath = path.join(config.paths.src, config.paths.image, config.paths.sprite);
 let srcSvgSpritePath = path.join(config.paths.src, config.paths.svg, config.paths.sprite);
 
+let tmplSvgSpritePath = path.join(config.paths.src, config.paths.template, config.paths.svgsprite);
+
 let targetResizeimgPath = path.join(config.paths.build, config.paths.resizeimg);
 let targetNsgPath = path.join(config.paths.build, config.paths.nsg);
 let targetSvgspritePath = path.join(config.paths.build, config.paths.svgsprite);
@@ -430,45 +432,178 @@ function taskGenerateSvgSpriteSprite() {
     let prefix = config.svgsprite.prefix || ''
     let suffix = config.svgsprite.suffix || ''
     let layout = config.svgsprite.layout || 'horizontal';
-    let dimensions = config.svgsprite.dimensions || '-dims';
+    let dimensions = config.svgsprite.dimensions || '--dimensions';
 
     let srcSvgs = path.join(srcSvgSpritePath, '**', '*.svg');
+
+    const filename = prefix + ( config.svgsprite.name || 'svg-sprite' ) + suffix;
 
     return gulp.src(srcSvgs, {
         "ignore": ['**/*.ignore/**']
     }).pipe($.svgSprite({
-        dest: './',
-        bust: false,
-        mode: {
+        dest: './', // Main output directory
+        log: 'verbose',   // {info|debug|verbose|''|false|null}
+
+        shape: {
+            id: { // SVG shape ID related options
+                separator: '__', // Separator for directory name traversal
+                _generator: function() { /*...*/ }, // SVG shape ID generator callback
+                pseudo: '~', // File name separator for shape states (e.g. ':hover')
+                whitespace: '_' // Whitespace replacement for shape IDs
+            },
+            dimension: { // Dimension related options
+                maxWidth: 2000, // Max. shape width
+                maxHeight: 2000, // Max. shape height
+                precision: 2, // Floating point precision
+                attributes: false, // Width and height attributes on embedded shapes
+            },
+            spacing: { // Spacing related options
+                padding: 0, // Padding around all shapes
+                box: 'content' // Padding strategy (similar to CSS `box-sizing`) {content|icon|padding}
+            },
+            transform: ['svgo'], // List of transformations / optimizations
+            _sort: function() { /*...*/ }, // SVG shape sorting callback
+            meta: null, // Path to YAML file with meta / accessibility data
+            align: null, // Path to YAML file with extended alignment data
+            dest: null // Output directory for optimized intermediate SVG shapes
+        },
+
+        mode: { // {css|view|defs|symbol|stack}
             css: {
-                sprite: path.join(targetSvgspritePath, 'sprite.css.svg'),
-                layout: layout,
-                prefix: ".svgsprite-%s",
+                sprite: `${filename}.css.svg`,
+                bust: false,
+                layout: layout, //  {vertical|horizontal|diagonal|packed}
+                prefix: `.${filename}--%s`,
                 dimensions: dimensions,
-                mixin: 'sprite',
+                common: `${filename}`,
+                mixin: `${filename}`,
                 render: {
                     css: {
-                        dest: path.join('css', '_svg-sprite.css')
+                        dest: path.join('css', `${filename}.css.css`),
+                        template: path.join(tmplSvgSpritePath, 'css', 'sprite.css')
                     },
                     scss: {
-                        dest: path.join('scss', '_svg-sprite.scss')
+                        dest: path.join('scss', `_${filename}.css.scss`),
+                        template: path.join(tmplSvgSpritePath, 'css', 'sprite.scss')
                     },
                     less: {
-                        dest: path.join('less', '_svg-sprite.less')
+                        dest: path.join('less', `_${filename}.css.less`),
+                        template: path.join(tmplSvgSpritePath, 'css', 'sprite.less')
                     },
                     styl: {
-                        dest: path.join('styl', '_svg-sprite.styl')
+                        dest: path.join('styl', `${filename}.css.styl`),
+                        template: path.join(tmplSvgSpritePath, 'css', 'sprite.styl')
                     }
                 },
                 example: {
-                    dest: path.join('html', 'svg-sprite-example.html')
+                    dest: `${filename}-example.css.html`,
+                    template: path.join(tmplSvgSpritePath, 'css', 'sprite.html')
                 }
             },
-        },
-        shape: {
-            spacing: {
-                padding: 1,
-                box: 'padding'
+
+            view: {
+                sprite: `${filename}.view.svg`,
+                bust: false,
+                layout: layout,
+                prefix: `.${filename}--%s`,
+                dimensions: dimensions,
+                common: `${filename}`,
+                mixin: `${filename}`,
+                render: {
+                    css: {
+                        dest: path.join('css', `${filename}.view.css`)
+                    },
+                    scss: {
+                        dest: path.join('scss', `_${filename}.view.scss`)
+                    },
+                    less: {
+                        dest: path.join('less', `_${filename}.view.less`)
+                    },
+                    styl: {
+                        dest: path.join('styl', `${filename}.view.styl`)
+                    }
+                },
+                example: {
+                    dest: `${filename}-example.view.html`,
+                    template: path.join(tmplSvgSpritePath, 'view', 'sprite.html')
+                }
+            },
+
+            defs: {
+                sprite: `${filename}.defs.svg`,
+                bust: false,
+                prefix: `.${filename}--%s`,
+                dimensions: dimensions,
+                inline: false,
+                render: {
+                    css: {
+                        dest: path.join('css', `${filename}.defs.css`)
+                    },
+                    scss: {
+                        dest: path.join('scss', `_${filename}.defs.scss`)
+                    },
+                    less: {
+                        dest: path.join('less', `_${filename}.defs.less`)
+                    },
+                    styl: {
+                        dest: path.join('styl', `${filename}.defs.styl`)
+                    }
+                },
+                example: {
+                    dest: `${filename}-example.defs.html`,
+                    template: path.join(tmplSvgSpritePath, 'defs', 'sprite.html')
+                }
+            },
+
+            symbol: {
+                sprite: `${filename}.symbol.svg`,
+                bust: false,
+                prefix: `.${filename}--%s`,
+                dimensions: dimensions,
+                inline: false,
+                render: {
+                    css: {
+                        dest: path.join('css', `${filename}.symbol.css`)
+                    },
+                    scss: {
+                        dest: path.join('scss', `_${filename}.symbol.scss`)
+                    },
+                    less: {
+                        dest: path.join('less', `_${filename}.symbol.less`)
+                    },
+                    styl: {
+                        dest: path.join('styl', `${filename}.symbol.styl`)
+                    }
+                },
+                example: {
+                    dest: `${filename}-example.symbol.html`,
+                    template: path.join(tmplSvgSpritePath, 'symbol', 'sprite.html')
+                }
+            },
+
+            stack: {
+                sprite: `${filename}.stack.svg`,
+                bust: false,
+                prefix: `.${filename}--%s`,
+                dimensions: dimensions,
+                render: {
+                    css: {
+                        dest: path.join('css', `${filename}.stack.css`)
+                    },
+                    scss: {
+                        dest: path.join('scss', `_${filename}.stack.scss`)
+                    },
+                    less: {
+                        dest: path.join('less', `_${filename}.stack.less`)
+                    },
+                    styl: {
+                        dest: path.join('styl', `${filename}.stack.styl`)
+                    }
+                },
+                example: {
+                    dest: `${filename}-example.stack.html`,
+                    template: path.join(tmplSvgSpritePath, 'stack', 'sprite.html')
+                }
             }
         }
     })).pipe(gulp.dest(targetSvgspritePath));
