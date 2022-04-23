@@ -465,7 +465,7 @@ function taskGenerateSvgSpriteSprite() {
             _sort: function() { /*...*/ }, // SVG shape sorting callback
             meta: null, // Path to YAML file with meta / accessibility data
             align: null, // Path to YAML file with extended alignment data
-            dest: null // Output directory for optimized intermediate SVG shapes
+            dest: '' // Output directory for optimized intermediate SVG shapes
         },
 
         mode: { // {css|view|defs|symbol|stack}
