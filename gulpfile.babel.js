@@ -429,18 +429,25 @@ function executeNsg(spriteName, spriteSources) {
  * @returns {*}
  */
 function taskGenerateSvgSpriteSprite() {
-    let prefix = config.svgsprite.prefix || ''
-    let suffix = config.svgsprite.suffix || ''
-    let layout = config.svgsprite.layout || 'horizontal';
-    let dimensions = config.svgsprite.dimensions || '--dimensions';
+    const svgSpriteConfiguration = _setupSvgSpriteConfiguration();
+    log(svgSpriteConfiguration);
 
     let srcSvgs = path.join(srcSvgSpritePath, '**', '*.svg');
 
+
+
+    const prefix = config.svgsprite.prefix || ''
+    const suffix = config.svgsprite.suffix || ''
+    const layout = config.svgsprite.layout || 'horizontal';
+    const dimensions = config.svgsprite.dimensions || '--dimensions';
     const filename = prefix + ( config.svgsprite.name || 'svg-sprite' ) + suffix;
+
+
 
     return gulp.src(srcSvgs, {
         "ignore": ['**/*.ignore/**']
-    }).pipe($.svgSprite({
+    })
+    .pipe($.svgSprite({
         dest: './', // Main output directory
         log: 'verbose',   // {info|debug|verbose|''|false|null}
 
@@ -606,10 +613,101 @@ function taskGenerateSvgSpriteSprite() {
                 }
             }
         }
-    })).pipe(gulp.dest(targetSvgspritePath));
+    }))
+    .pipe(gulp.dest(targetSvgspritePath));
 }
 
+/**
+ *
+ * @returns {{log: string, dest: string}}
+ * @private
+ */
+function _setupSvgSpriteConfiguration() {
+    let svgSpriteConfigration = {
+        dest: './', // Main output directory
+        log: 'verbose'   // {info|debug|verbose|''|false|null}
+    };
 
+    // shape
+    svgSpriteConfigration['shape'] = {
+        id: { // SVG shape ID related options
+            separator: '__', // Separator for directory name traversal
+            _generator: function() { /*...*/ }, // SVG shape ID generator callback
+            pseudo: '~', // File name separator for shape states (e.g. ':hover')
+            whitespace: '_' // Whitespace replacement for shape IDs
+        },
+        dimension: { // Dimension related options
+            maxWidth: 2000, // Max. shape width
+            maxHeight: 2000, // Max. shape height
+            precision: 2, // Floating point precision
+            attributes: false, // Width and height attributes on embedded shapes
+        },
+        spacing: { // Spacing related options
+            padding: 0, // Padding around all shapes
+            box: 'content' // Padding strategy (similar to CSS `box-sizing`) {content|icon|padding}
+        },
+        transform: ['svgo'], // List of transformations / optimizations
+        _sort: function() { /*...*/ }, // SVG shape sorting callback
+        meta: null, // Path to YAML file with meta / accessibility data
+        align: null, // Path to YAML file with extended alignment data
+        dest: '' // Output directory for optimized intermediate SVG shapes
+    };
+
+    svgSpriteConfigration['mode'] = {};
+
+    let modes = ['css', 'view', 'defs', 'symbol', 'stack']
+
+    // global mode settings
+    modes.forEach( (currentMode, index, array) => {
+        const filenameBase = `${config.svgsprite.prefix || ''}${( config.svgsprite.name || 'svg-sprite' )}.${currentMode}${config.svgsprite.suffix || ''}`;
+        //prefix + ( config.svgsprite.name || 'svg-sprite' ) + '.css' + suffix;
+        const selectorPrefix = filenameBase.replaceAll('\.', '-');
+
+        svgSpriteConfigration['mode'][currentMode] = {
+            dest: currentMode,
+            prefix: `.${selectorPrefix}--%s`,
+            dimensions: config.svgsprite.dimensions || '--dimensions',
+            sprite: `${filenameBase}.svg`,
+            bust: false,
+            render: {},
+            example: {
+                dest: `${filenameBase}-example.html`,
+                template: path.join(tmplSvgSpritePath, currentMode, 'sprite.html')
+            }
+        };
+
+        // specific properties
+        switch ( currentMode ) {
+            case 'css':
+            case 'view':
+                svgSpriteConfigration['mode'][currentMode]['layout'] = config.svgsprite.layout || 'horizontal'; //  {vertical|horizontal|diagonal|packed};
+                svgSpriteConfigration['mode'][currentMode]['common'] = `${selectorPrefix}`;
+                svgSpriteConfigration['mode'][currentMode]['mixin'] = `${selectorPrefix}`;
+                break;
+
+            case 'defs':
+            case 'symbols':
+                svgSpriteConfigration['mode'][currentMode]['inline'] = false;
+                break;
+
+            case 'stack':
+                break;
+        }
+
+        // renderer definitions
+        const renderer = ['css', 'less', 'scss', 'styl'];
+
+        renderer.forEach((currentRenderer, index, array) => {
+            svgSpriteConfigration['mode'][currentMode]['render'][currentRenderer] = {
+                dest: path.join(currentRenderer, `${filenameBase}.${currentRenderer}`),
+                template: path.join(tmplSvgSpritePath, currentRenderer, `sprite.${currentRenderer}`)
+            };
+        });
+
+    });
+
+    return svgSpriteConfigration;
+}
 
 /* ==================================================================================================================
  *  # Tasks
