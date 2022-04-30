@@ -34,11 +34,11 @@ const config = loadConfig();
  *  # Paths
  * ================================================================================================================== */
 
-let srcResizeimgPath = path.join(config.paths.src, config.paths.image, config.paths.resizeimg);
-let srcImageSpritePath = path.join(config.paths.src, config.paths.image, config.paths.sprite);
+let srcResizeimgPath = path.join(config.paths.src, config.paths.images, config.paths.resizeimg);
+let srcImageSpritePath = path.join(config.paths.src, config.paths.images, config.paths.sprite);
 let srcSvgSpritePath = path.join(config.paths.src, config.paths.svg, config.paths.sprite);
 
-let tmplSvgSpritePath = path.join(config.paths.src, config.paths.template, config.paths.svgsprite);
+let tmplSvgSpritePath = path.join(config.paths.src, config.paths.templates, config.paths.svgsprite);
 
 let targetResizeimgPath = path.join(config.paths.build, config.paths.resizeimg);
 let targetNsgPath = path.join(config.paths.build, config.paths.nsg);
@@ -382,8 +382,8 @@ function executeNsg(spriteName, spriteSources) {
         let stylesheetExtension = config.nsg.stylesheetExtension || '.scss';
         let stylesheetFilename =`_${prefix}${spriteName}${suffix}${stylesheetExtension}`;
         let stylesheetPath = path.join(targetNsgPath, config.paths.stylesheet, stylesheetFilename);
-        let stylesheetPrefix = `-${prefix}${spriteName}${suffix}-`;
-        let stylesheetSpriteUrl = path.join(config.paths.src, config.paths.assets, config.paths.media, config.paths.image, config.paths.sprite, spriteFilename);
+        let stylesheetPrefix = `${prefix}${spriteName}${suffix}-`;
+        let stylesheetSpriteUrl = path.join(config.paths.src, config.paths.assets, config.paths.media, config.paths.images, config.paths.sprite, spriteFilename);
 
         let pixelRatio = typechecks.isNumeric(config.nsg.pixelRatio) ? config.nsg.pixelRatio : 1;
         let compositor = config.nsg.compositor || 'jimp';
@@ -442,12 +442,7 @@ function taskGenerateSvgSpriteSprite() {
     const dimensions = config.svgsprite.dimensions || '--dimensions';
     const filename = prefix + ( config.svgsprite.name || 'svg-sprite' ) + suffix;
 
-
-
-    return gulp.src(srcSvgs, {
-        "ignore": ['**/*.ignore/**']
-    })
-    .pipe($.svgSprite({
+    let oldConfig = {
         dest: './', // Main output directory
         log: 'verbose',   // {info|debug|verbose|''|false|null}
 
@@ -613,7 +608,12 @@ function taskGenerateSvgSpriteSprite() {
                 }
             }
         }
-    }))
+    };
+
+    return gulp.src(srcSvgs, {
+        "ignore": ['**/*.ignore/**']
+    })
+    .pipe($.svgSprite(svgSpriteConfiguration))
     .pipe(gulp.dest(targetSvgspritePath));
 }
 
@@ -686,7 +686,7 @@ function _setupSvgSpriteConfiguration() {
                 break;
 
             case 'defs':
-            case 'symbols':
+            case 'symbol':
                 svgSpriteConfigration['mode'][currentMode]['inline'] = false;
                 break;
 

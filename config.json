@@ -9,31 +9,37 @@
     "build": "build",
     "assets": "assets",
     "media": "media",
-    "image": "image",
+    "images": "images",
     "svg": "svg",
     "sprite": "sprite",
     "stylesheet": "stylesheet",
     "resizeimg": "resizeimg",
     "nsg": "nsg",
     "svgsprite": "svg-sprite",
-    "template": "template"
+    "templates": "templates"
   },
 
   "sprite": {
   },
 
   "nsg": {
-    "prefix": "nsg-",
-    "suffix": "-nsg",
+    "sprite_src": "src/media/images/sprites",
+    "sprite_target": "build/nsg/sprites",
+    "sprite_prefix": "nsg-",
+    "sprite_suffix": "",
     "layout": "packed",
     "layout_": "diagonal",
     "layout_": "horizontal",
     "layout_": "vertical",
-    "spriteExtension": ".png",
-    "stylesheet": "scss",
-    "stylesheetExtension": ".scss",
+    "sprite_extension": ".png",
+    "stylesheet": "src/templates/nsg/scss.tpl",
+    "stylesheet_sprite_url": "/assets/media/images/sprites/",
+    "stylesheet_target": "build/nsg/scss",
+    "stylesheet_prefix": "_nsg-",
+    "stylesheet_suffix": "",
+    "stylesheet_extension": ".scss",
     "compositor": "jimp",
-    "pixelRation": 1
+    "pixelRatio": 1
   },
 
 
