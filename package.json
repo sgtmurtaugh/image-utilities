@@ -1,5 +1,5 @@
 {
-  "name": "image-utils",
+  "name": "@sgtmurtaugh/image-utils",
   "version": "0.1.0",
   "description": "",
   "main": "index.js",
