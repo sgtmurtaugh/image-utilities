@@ -1,8 +1,10 @@
 {
   "name": "@sgtmurtaugh/image-utils",
   "version": "0.1.0",
-  "description": "",
-  "main": "index.js",
+  "description": "A utility collection for generating sprites, svg-sprites, scaled images and assets files for web projects",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "clean-build": "gulp clean-build",
     "generate-nsg-sprite": "gulp generate-nsg-sprite",
