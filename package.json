@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "clean-build": "gulp clean-build",
     "generate-nsg-sprite": "gulp generate-nsg-sprite",
     "generate-nsg-sprites": "gulp generate-nsg-sprites",
     "generate-resizeimg": "gulp generate-resizeimg-images",
