@@ -71,6 +71,11 @@
 
 
 
+    "src": "src/media/svg/sprites/**/*.svg",
+    "target": "build",
+    "templates": "src/templates/svg-sprite",
+
+
 
 
     "config": {

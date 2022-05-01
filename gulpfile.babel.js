@@ -430,7 +430,7 @@ function executeNsg(spriteName, spriteSources) {
  */
 function taskGenerateSvgSpriteSprite() {
     const svgSpriteConfiguration = _setupSvgSpriteConfiguration();
-    log(svgSpriteConfiguration);
+//    log(svgSpriteConfiguration);
 
     let srcSvgs = path.join(srcSvgSpritePath, '**', '*.svg');
 
@@ -676,6 +676,12 @@ function _setupSvgSpriteConfiguration() {
             }
         };
 
+        // add example templates, if file exists
+        let exampleTemplate = path.join(tmplSvgSpritePath, currentMode, 'sprite.html');
+        if ( fs.existsSync(exampleTemplate) ) {
+            svgSpriteConfigration['mode'][currentMode]['example']['template'] = exampleTemplate;
+        }
+
         // specific properties
         switch ( currentMode ) {
             case 'css':
@@ -700,10 +706,17 @@ function _setupSvgSpriteConfiguration() {
         renderer.forEach((currentRenderer, index, array) => {
             svgSpriteConfigration['mode'][currentMode]['render'][currentRenderer] = {
                 dest: path.join(currentRenderer, `${filenameBase}.${currentRenderer}`),
-                template: path.join(tmplSvgSpritePath, currentRenderer, `sprite.${currentRenderer}`)
             };
+
+            // add renderer template, if file exists
+            let rendererTemplate = path.join(tmplSvgSpritePath, currentMode, `sprite.${currentRenderer}.hbs`);
+            if ( fs.existsSync(rendererTemplate) ) {
+                svgSpriteConfigration['mode'][currentMode]['render'][currentRenderer]['template'] = rendererTemplate;
+            }
         });
 
+        log( `-- ${currentMode} --------------------------------------------------` );
+        log(svgSpriteConfigration['mode'][currentMode]['render']);
     });
 
     return svgSpriteConfigration;

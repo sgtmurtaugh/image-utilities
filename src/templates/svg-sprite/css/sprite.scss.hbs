@@ -1,3 +1,23 @@
+// Remove in projects without the given sprite functions/mixins
+@use '../../functions/sprite_functions';
+@use '../../mixins/sprite_mixins';
+
+// hasCommon: {{hasCommon}}
+// commonName: {{commonName}}
+// mixinName: {{mixinName}}
+// shapes:
+{{#shapes}}
+    {{#selector.shape}}
+// selector.shape: {{selector.shape}}
+// expression: {{expression}}
+    {{/selector.shape}}
+{{/shapes}}
+
+$-<%= spriteName %>-url: "{{{sprite}}};
+$-<%= spriteName %>-height: 0px;
+$-<%= spriteName %>-width: 0px;
+$-<%= spriteName %>-size: $-<%= spriteName %>-width $-<%= spriteName %>-height;
+
 {{#hasMixin}}@mixin {{mixinName}} {
 	background: url("{{{sprite}}}") no-repeat;
 }
