@@ -24,17 +24,18 @@
 
   "nsg": {
     "sprite_src": "src/media/images/sprites",
-    "sprite_target": "build/nsg/sprites",
-    "sprite_prefix": "nsg-",
+    "sprite_target": "build/node-sprite-generator/sprites",
+    "sprite_name": "sprite",
+    "sprite_prefix": "nsg2-",
     "sprite_suffix": "",
     "layout": "packed",
     "layout_": "diagonal",
     "layout_": "horizontal",
     "layout_": "vertical",
     "sprite_extension": ".png",
-    "stylesheet": "src/templates/nsg/scss.tpl",
+    "stylesheet_template": "src/templates/node-sprite-generator/scss.tpl",
     "stylesheet_sprite_url": "/assets/media/images/sprites/",
-    "stylesheet_target": "build/nsg/scss",
+    "stylesheet_target": "build/node-sprite-generator/scss",
     "stylesheet_prefix": "_nsg-",
     "stylesheet_suffix": "",
     "stylesheet_extension": ".scss",
@@ -43,43 +44,23 @@
   },
 
 
-  "resizeimg": {
-    "prefix": "scaled-",
-    "suffix": "-scaled",
-    "createFolders": true,
-    "sizes": {
-      "standard": {
-        "width": 640,
-        "height": 480
-      }
-    }
-  },
-
   "svgsprite": {
-    "docs": [
-      "https://github.com/svg-sprite/svg-sprite/blob/HEAD/docs/configuration.md",
-      "https://github.com/svg-sprite/svg-sprite/blob/3fa32f670ac6360b7009dabdb82b634a2c40231d/docs/templating.md"
-    ],
-    "prefix": "prefix-",
-    "suffix": "-suffix",
-    "layout": "packed",
-    "_layout": "horizontal",
-    "_layout": "vertical",
-    "_layout": "diagonal",
-    "_layout": "packed",
-    "dimensions": "--dimensions",
-
-
-
-    "src": "src/media/svg/sprites/**/*.svg",
-    "target": "build",
+    "sprite_src": "src/media/svg/sprites",
+    "sprite_target": "build/svg-sprite",
     "templates": "src/templates/svg-sprite",
-
-
+    "common_templates": "src/templates/svg-sprite/common",
+    "sprite_example": "sprite-example.html",
+    "sprite_name": "sprite",
+    "sprite_prefix": "svgsprite2-",
+    "sprite_suffix": "",
+    "sprite_renderer_prefix": "sprite.",
+    "sprite_renderer_suffix": "",
+    "sprite_renderer_extension": "tpl.hbs",
+    "stylesheet_sprite_url": "/assets/media/svg/sprites/",
 
 
     "config": {
-      "log": "debug",
+      "log": "verbose",
 
       "shape": {
         "id": {
@@ -117,7 +98,7 @@
       "mode": {
         "view": {
           "dest": "./assets/scss",
-          "sprite": "../../assets/img/svg-sprites/svg-sprite.view.svg",
+          "sprite": "../../assets/img/svg-sprites/svg-sprite-view.svg",
           "dimensions": "-dims",
           "layout": "horizontal",
           "layout_": "vertical",
@@ -127,7 +108,7 @@
           "bust": false,
           "render": {
             "scss": {
-              "dest": "svg-sprites/_svg-sprite.view.scss"
+              "dest": "svg-sprites/_svg-sprite-view.scss"
             }
           },
           "example": false
@@ -136,6 +117,143 @@
 
       "variables": {
         "mapname": "icons"
+      }
+    }
+  },
+
+  "resizeimg": {
+    "path": "src/media/images/resizeimg/",
+    "src": "src/media/images/resizeimg/**/{*.bmp,*.jpg,*.jpeg,*.png}",
+    "target": "build/resizeimg",
+    "prefix": "scaled-",
+    "suffix": "",
+    "options": {
+      "createFolders": true
+    },
+    "sizes": {
+      "teaser-xs": {
+        "width": 150,
+        "height": 150
+      },
+      "teaser-s": {
+        "width": 250,
+        "height": 250
+      },
+      "teaser-m": {
+        "width": 350,
+        "height": 350
+      },
+      "teaser-l": {
+        "width": 450,
+        "height": 450
+      },
+      "teaser-xl": {
+        "width": 550,
+        "height": 550
+      },
+      "teaser-xxl": {
+        "width": 650,
+        "height": 650
+      },
+
+      "standard-xs": {
+        "width": 150,
+        "height": 150
+      },
+      "standard-s": {
+        "width": 250,
+        "height": 250
+      },
+      "standard-m": {
+        "width": 350,
+        "height": 350
+      },
+      "standard-l": {
+        "width": 450,
+        "height": 450
+      },
+      "standard-xl": {
+        "width": 550,
+        "height": 550
+      },
+      "standard-xxl": {
+        "width": 650,
+        "height": 650
+      },
+
+      "poster-xs": {
+        "width": 150,
+        "height": 150
+      },
+      "poster-s": {
+        "width": 250,
+        "height": 250
+      },
+      "poster-m": {
+        "width": 350,
+        "height": 350
+      },
+      "poster-l": {
+        "width": 450,
+        "height": 450
+      },
+      "poster-xl": {
+        "width": 550,
+        "height": 550
+      },
+      "poster-xxl": {
+        "width": 650,
+        "height": 650
+      },
+
+      "banner-xs": {
+        "width": 150,
+        "height": 150
+      },
+      "banner-s": {
+        "width": 250,
+        "height": 250
+      },
+      "banner-m": {
+        "width": 350,
+        "height": 350
+      },
+      "banner-l": {
+        "width": 450,
+        "height": 450
+      },
+      "banner-xl": {
+        "width": 550,
+        "height": 550
+      },
+      "banner-xxl": {
+        "width": 650,
+        "height": 650
+      },
+
+      "tile-xs": {
+        "width": 150,
+        "height": 150
+      },
+      "tile-s": {
+        "width": 250,
+        "height": 250
+      },
+      "tile-m": {
+        "width": 350,
+        "height": 350
+      },
+      "tile-l": {
+        "width": 450,
+        "height": 450
+      },
+      "tile-xl": {
+        "width": 550,
+        "height": 550
+      },
+      "tile-xxl": {
+        "width": 650,
+        "height": 650
       }
     }
   }

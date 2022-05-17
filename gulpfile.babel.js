@@ -4,25 +4,25 @@ import gulp     from 'gulp';
 import plugins  from 'gulp-load-plugins';
 import fs       from 'fs';
 import path     from 'path';
-import mkdirp   from 'make-dir';
-//import yargs    from 'yargs';
+ import yargs    from 'yargs';
 // TODO: YAML wieder aktivieren, da die YAML config self references und nested values verwenden kann
-//import yaml     from 'js-yaml';
+import yaml     from 'js-yaml';
 import nsg      from 'node-sprite-generator';
 import promise  from 'es6-promise';
 import rimraf   from 'rimraf';
 import typechecks from '@sgtmurtaugh/typechecks';
-import glob     from 'glob';
-//import svgSpritesheet from '@mariusgundersen/gulp-svg-spritesheet';
 import log from 'fancy-log';
 
 const resizeImage   = require('resize-img');
 
+// Load all Gulp plugins into one variable
+const $ = plugins();
+
 // Promise Definition for Tasks without Streams or existing Promises
 const Promise = promise.Promise;
 
-// Load all Gulp plugins into one variable
-const $ = plugins();
+// Check for --production flag
+const PRODUCTION = !!(yargs.argv.production);
 
 // Load settings from settings.yml
 // const { COMPATIBILITY, PORT, UNCSS_OPTIONS, PATHS } = loadConfig();
@@ -55,6 +55,7 @@ let targetSvgspritePath = path.join(config.paths.build, config.paths.svgsprite);
 
 /**
  * Load the JSON Config
+ * @returns {*}
  */
 function loadConfig() {
     // let ymlFile = fs.readFileSync('config.yml', 'utf8');
@@ -66,7 +67,7 @@ function loadConfig() {
 
 /**
  * Creates the given directy if it not exists.
- * @param dir
+ * @param dir {string}
  */
 function ensureFolder(dir) {
     let bSuccess = false;
@@ -75,15 +76,17 @@ function ensureFolder(dir) {
             dir = path.join(__dirname, dir);
         }
 
-        if ( !(bSuccess = fs.existsSync(dir)) ) {
-            const path = mkdirp.sync( dir );
-            if ( typechecks.isNotEmpty(path) ) {
+        bSuccess = fs.existsSync(dir);
+        if ( !bSuccess ) {
+            const _path = mkdirp.sync( dir );
+            if ( typechecks.isNotEmpty(_path) ) {
                 bSuccess = true;
             }
         }
     }
     return bSuccess;
 }
+
 
 /* ------------------------------
  *  ## Build Functions
@@ -138,11 +141,12 @@ function taskCleanBuildSvgspriteSprite(cb) {
  * ------------------------------ */
 
 /**
- * taskGenerateResizeimgImages
- * @param cb
+ * taskGenerateResizeimgScaledImages
+ * @param callback {Function}
  */
-function taskGenerateResizeimgImages(cb) {
+function taskGenerateResizeimgImages(callback) {
     let srcImages = path.join(srcResizeimgPath, '**', '{*.bmp,*.jpg,*.jpeg,*.png}');
+    log('srcImages: ' + srcImages);
     let files = glob.sync(
         srcImages,
         {
@@ -186,6 +190,7 @@ function taskGenerateResizeimgImages(cb) {
                                         log.warn(`size '${dimensionKey}' has no height and width!`);
                                         continue;
                                     }
+
 
                                     // set auto dimension for missing config
                                     if (!bHasWidth) {
@@ -265,7 +270,7 @@ function taskGenerateResizeimgImages(cb) {
             }
         }
     }
-    cb();
+    callback();
 }
 
 
@@ -275,27 +280,36 @@ function taskGenerateResizeimgImages(cb) {
 
 /**
  * Task-Function
- * TODO
+ * Delegates to the #generateNsgSprites methods. The callback is passed through and the flagSingleFileSprite
+ * is set to true, to generate only a single sprite-set.
+ *
+ * @param callback {Function}
  */
-function taskGenerateNsgSprite(cb) {
-    return generateNsgSprite(true, cb);
+function taskGenerateNsgSprite(callback) {
+    return generateNsgSprite(true, callback);
 }
 
 /**
  * Task-Function
- * Determines all sprite folders inside the sprite-src folder and
- * runs the generateSprite function on each of them.
+ * Delegates to the #generateNsgSprites methods. The callback is passed through and the flagSingleFileSprite
+ * is set to false, to create multiple sprites-sets.
+ *
+ * @param callback {Function}
  */
-function taskGenerateNsgSprites(cb) {
-    return generateNsgSprite(false, cb);
+function taskGenerateNsgSprites(callback) {
+    return generateNsgSprite(false, callback);
 }
 
 /**
+ *
+ * @param flagSingleFileSprite {boolean}
+ * @param callback {Function}
+ *
  * TODO
  * Determines all sprite folders inside the sprite-src folder and
  * runs the generateSprite function on each of them.
  */
-function generateNsgSprite(flagSingleFileSprite, cb) {
+function generateNsgSprite(flagSingleFileSprite, callback) {
     flagSingleFileSprite = typechecks.isBoolean(flagSingleFileSprite) ? flagSingleFileSprite : true;
 
     let spriteSources = glob.sync(path.join(srcImageSpritePath, '*'), {
@@ -304,7 +318,7 @@ function generateNsgSprite(flagSingleFileSprite, cb) {
     })
     .filter(function (spriteSource) {
         if (fs.statSync(spriteSource).isFile()) {
-            log.warn(`no parent sprite-folder definied. file '${spriteSource}' will be ignored! move image to a new/existing parent and restart the generate task.`);
+            log.warn(`no parent sprite-folder defined. file '${spriteSource}' will be ignored! move image to a new/existing parent and restart the generate task.`);
             return false;
         }
 
@@ -315,13 +329,13 @@ function generateNsgSprite(flagSingleFileSprite, cb) {
     });
 
 
-    const SPRITENAME_ALL_SPRITE = 'all-sprite';
+    const SPRITE_NAME_ALL_SPRITE = config.nsg.sprite_name || 'all-sprite';
     let spriteNames = [];
     let spriteImages = {};
 
 
     // determine individual sprite name and imageSources for determined sprite sources
-    spriteSources.forEach( function(spriteSource, index) {
+    spriteSources.forEach( function(spriteSource) {
         let spriteSourceFolderName;
         if (!flagSingleFileSprite) {
             spriteSourceFolderName = spriteSource;
@@ -331,7 +345,7 @@ function generateNsgSprite(flagSingleFileSprite, cb) {
             }
         }
         else {
-            spriteSourceFolderName = SPRITENAME_ALL_SPRITE;
+            spriteSourceFolderName = SPRITE_NAME_ALL_SPRITE;
         }
 
         // add current spriteSourceFolderName to spriteNames
@@ -351,20 +365,20 @@ function generateNsgSprite(flagSingleFileSprite, cb) {
             return executeNsg( spriteNames[0], spriteImages[spriteNames[0]] );
         }
         else {
-            spriteSources.forEach( async function ( spriteSource, index ) {
-                return await executeNsg( spriteNames[index], spriteImages[spriteNames[index]] );
+            spriteNames.forEach( async function ( spriteName ) {
+                return executeNsg( spriteName, spriteImages[spriteName] );
             } );
         }
     }
-    cb();
+    callback();
 }
 
 /**
  * Creates and runs the Node-Sprite-Generator on the given folder.
  * Only PNG files will be used for the sprite. The output is a sprite PNG and a
  * SASS source file with all containing image informations.
- * @param spriteName
- * @param spriteSources
+ * @param spriteName {string}
+ * @param spriteSources {string}
  * @returns {*}
  */
 function executeNsg(spriteName, spriteSources) {
@@ -425,190 +439,111 @@ function executeNsg(spriteName, spriteSources) {
  * ------------------------------ */
 
 /**
- * taskGenerateSvgSpriteSprite
- * @returns {*}
+ * Task-Function
+ * Delegates to the #generateSvgSpriteSprites methods. The callback is passed through and the flagSingleFileSprite
+ * is set to true, to generate only a single sprite-set.
+ *
+ * @param callback {Function}
  */
-function taskGenerateSvgSpriteSprite() {
-    const svgSpriteConfiguration = _setupSvgSpriteConfiguration();
-//    log(svgSpriteConfiguration);
+function taskGenerateSvgSpriteSprite(callback) {
+    return generateSvgSpriteSprites(true, callback);
+}
 
-    let srcSvgs = path.join(srcSvgSpritePath, '**', '*.svg');
+/**
+ * Task-Function
+ * Delegates to the #generateSvgSpriteSprites methods. The callback is passed through and the flagSingleFileSprite
+ * is set to false, to create multiple sprites-sets.
+ *
+ * @param callback {Function}
+ */
+function taskGenerateSvgSpriteSprites(callback) {
+    return generateSvgSpriteSprites(false, callback);
+}
+
+/**
+ * TODO
+ * Determines all sprite folders inside the sprite-src folder and
+ * runs the generateSprite function on each of them.
+ *
+ * @param flagSingleFileSprite {boolean}
+ * @param callback {Function}
+ */
+function generateSvgSpriteSprites(flagSingleFileSprite, callback) {
+    flagSingleFileSprite = typechecks.isBoolean(flagSingleFileSprite) ? flagSingleFileSprite : true;
+
+    let spriteSources = glob.sync(path.join(config.svgsprite.sprite_src, '*'), {
+        "ignore": ['**/*.ignore/**']
+    })
+    .filter(function (spriteSource) {
+        if (fs.statSync(spriteSource).isFile()) {
+            log.warn(`no parent sprite-folder defined. file '${spriteSource}' will be ignored! move image to a new/existing parent and restart the generate task.`);
+            return false;
+        }
+
+        // remain only folder with svgs
+        let globSvgs = glob.sync( path.join(spriteSource, '**/*.svg' ));
+        return (globSvgs.length >= 1);
+
+    });
 
 
+    const SPRITE_NAME_ALL_SPRITE = config.svgsprite.sprite_name || 'all-sprite';
+    let spriteNames = [];
+    let spriteImages = {};
 
-    const prefix = config.svgsprite.prefix || ''
-    const suffix = config.svgsprite.suffix || ''
-    const layout = config.svgsprite.layout || 'horizontal';
-    const dimensions = config.svgsprite.dimensions || '--dimensions';
-    const filename = prefix + ( config.svgsprite.name || 'svg-sprite' ) + suffix;
 
-    let oldConfig = {
-        dest: './', // Main output directory
-        log: 'verbose',   // {info|debug|verbose|''|false|null}
-
-        shape: {
-            id: { // SVG shape ID related options
-                separator: '__', // Separator for directory name traversal
-                _generator: function() { /*...*/ }, // SVG shape ID generator callback
-                pseudo: '~', // File name separator for shape states (e.g. ':hover')
-                whitespace: '_' // Whitespace replacement for shape IDs
-            },
-            dimension: { // Dimension related options
-                maxWidth: 2000, // Max. shape width
-                maxHeight: 2000, // Max. shape height
-                precision: 2, // Floating point precision
-                attributes: false, // Width and height attributes on embedded shapes
-            },
-            spacing: { // Spacing related options
-                padding: 0, // Padding around all shapes
-                box: 'content' // Padding strategy (similar to CSS `box-sizing`) {content|icon|padding}
-            },
-            transform: ['svgo'], // List of transformations / optimizations
-            _sort: function() { /*...*/ }, // SVG shape sorting callback
-            meta: null, // Path to YAML file with meta / accessibility data
-            align: null, // Path to YAML file with extended alignment data
-            dest: '' // Output directory for optimized intermediate SVG shapes
-        },
-
-        mode: { // {css|view|defs|symbol|stack}
-            css: {
-                sprite: `${filename}.css.svg`,
-                bust: false,
-                layout: layout, //  {vertical|horizontal|diagonal|packed}
-                prefix: `.${filename}--%s`,
-                dimensions: dimensions,
-                common: `${filename}`,
-                mixin: `${filename}`,
-                render: {
-                    css: {
-                        dest: path.join('css', `${filename}.css.css`),
-                        template: path.join(tmplSvgSpritePath, 'css', 'sprite.css')
-                    },
-                    scss: {
-                        dest: path.join('scss', `_${filename}.css.scss`),
-                        template: path.join(tmplSvgSpritePath, 'css', 'sprite.scss')
-                    },
-                    less: {
-                        dest: path.join('less', `_${filename}.css.less`),
-                        template: path.join(tmplSvgSpritePath, 'css', 'sprite.less')
-                    },
-                    styl: {
-                        dest: path.join('styl', `${filename}.css.styl`),
-                        template: path.join(tmplSvgSpritePath, 'css', 'sprite.styl')
-                    }
-                },
-                example: {
-                    dest: `${filename}-example.css.html`,
-                    template: path.join(tmplSvgSpritePath, 'css', 'sprite.html')
-                }
-            },
-
-            view: {
-                sprite: `${filename}.view.svg`,
-                bust: false,
-                layout: layout,
-                prefix: `.${filename}--%s`,
-                dimensions: dimensions,
-                common: `${filename}`,
-                mixin: `${filename}`,
-                render: {
-                    css: {
-                        dest: path.join('css', `${filename}.view.css`)
-                    },
-                    scss: {
-                        dest: path.join('scss', `_${filename}.view.scss`)
-                    },
-                    less: {
-                        dest: path.join('less', `_${filename}.view.less`)
-                    },
-                    styl: {
-                        dest: path.join('styl', `${filename}.view.styl`)
-                    }
-                },
-                example: {
-                    dest: `${filename}-example.view.html`,
-                    template: path.join(tmplSvgSpritePath, 'view', 'sprite.html')
-                }
-            },
-
-            defs: {
-                sprite: `${filename}.defs.svg`,
-                bust: false,
-                prefix: `.${filename}--%s`,
-                dimensions: dimensions,
-                inline: false,
-                render: {
-                    css: {
-                        dest: path.join('css', `${filename}.defs.css`)
-                    },
-                    scss: {
-                        dest: path.join('scss', `_${filename}.defs.scss`)
-                    },
-                    less: {
-                        dest: path.join('less', `_${filename}.defs.less`)
-                    },
-                    styl: {
-                        dest: path.join('styl', `${filename}.defs.styl`)
-                    }
-                },
-                example: {
-                    dest: `${filename}-example.defs.html`,
-                    template: path.join(tmplSvgSpritePath, 'defs', 'sprite.html')
-                }
-            },
-
-            symbol: {
-                sprite: `${filename}.symbol.svg`,
-                bust: false,
-                prefix: `.${filename}--%s`,
-                dimensions: dimensions,
-                inline: false,
-                render: {
-                    css: {
-                        dest: path.join('css', `${filename}.symbol.css`)
-                    },
-                    scss: {
-                        dest: path.join('scss', `_${filename}.symbol.scss`)
-                    },
-                    less: {
-                        dest: path.join('less', `_${filename}.symbol.less`)
-                    },
-                    styl: {
-                        dest: path.join('styl', `${filename}.symbol.styl`)
-                    }
-                },
-                example: {
-                    dest: `${filename}-example.symbol.html`,
-                    template: path.join(tmplSvgSpritePath, 'symbol', 'sprite.html')
-                }
-            },
-
-            stack: {
-                sprite: `${filename}.stack.svg`,
-                bust: false,
-                prefix: `.${filename}--%s`,
-                dimensions: dimensions,
-                render: {
-                    css: {
-                        dest: path.join('css', `${filename}.stack.css`)
-                    },
-                    scss: {
-                        dest: path.join('scss', `_${filename}.stack.scss`)
-                    },
-                    less: {
-                        dest: path.join('less', `_${filename}.stack.less`)
-                    },
-                    styl: {
-                        dest: path.join('styl', `${filename}.stack.styl`)
-                    }
-                },
-                example: {
-                    dest: `${filename}-example.stack.html`,
-                    template: path.join(tmplSvgSpritePath, 'stack', 'sprite.html')
-                }
+    // determine individual sprite name and imageSources for determined sprite sources
+    spriteSources.forEach( function(spriteSource, index) {
+        let spriteSourceFolderName;
+        if (!flagSingleFileSprite) {
+            spriteSourceFolderName = spriteSource;
+            let lastFolderIndex = spriteSource.lastIndexOf('/') + 1;
+            if ( spriteSourceFolderName.length > lastFolderIndex ) {
+                spriteSourceFolderName = spriteSource.substring(lastFolderIndex);
             }
         }
-    };
+        else {
+            spriteSourceFolderName = SPRITE_NAME_ALL_SPRITE;
+        }
+
+        // add current spriteSourceFolderName to spriteNames
+        spriteNames.push(spriteSourceFolderName);
+
+        if ( typechecks.isUndefined(spriteImages[spriteSourceFolderName])) {
+            spriteImages[spriteSourceFolderName] = [];
+        }
+
+        // add specific sprite sources
+        spriteImages[spriteSourceFolderName].push( path.join( spriteSource, '**/*.svg' ) );
+    });
+
+    // start nsg execution with flag depended sprite sources
+    if ( typechecks.isNotEmpty(spriteImages) ) {
+        if ( flagSingleFileSprite ) {
+            return executeSvgSprite( spriteNames[0], spriteImages[spriteNames[0]] );
+        }
+        else {
+            spriteNames.forEach( async function ( spriteName ) {
+                return executeSvgSprite( spriteName, spriteImages[spriteNames] );
+            } );
+        }
+    }
+    callback();
+}
+
+/**
+ * Creates and runs the svgsprite-Generator on the given folder.
+ * Only PNG files will be used for the sprite. The output is a sprite PNG and a
+ * SASS source file with all containing image informations.
+ *
+ * @param spriteName {string}
+ * @param spriteSources {string}
+ * @returns {*}
+ */
+function executeSvgSprite(spriteName, spriteSources) {
+    const svgSpriteConfiguration = _setupSvgSpriteConfiguration(spriteName);
+
+    let srcSvgs = path.join(srcSvgSpritePath, '**', '*.svg');
 
     return gulp.src(srcSvgs, {
         "ignore": ['**/*.ignore/**']
@@ -622,17 +557,37 @@ function taskGenerateSvgSpriteSprite() {
  * @returns {{log: string, dest: string}}
  * @private
  */
-function _setupSvgSpriteConfiguration() {
+function _setupSvgSpriteConfiguration(spriteName) {
+//    let tmplSvgSpritePath = path.join(config.paths.src, config.paths.templates, config.paths.svgsprite);
+    let tmplPath = config.svgsprite.templates;
+    let tmplCommonPath = config.svgsprite.common_templates;
+
+    let spriteExample = config.svgsprite.sprite_example || '-example.html';
+    let spritePrefix = config.svgsprite.sprite_prefix || '';
+    let spriteSuffix = config.svgsprite.sprite_suffix || '';
+    let spriteRendererPrefix = config.svgsprite.sprite_renderer_prefix || '_';
+    let spriteRendererSuffix = config.svgsprite.sprite_renderer_suffix || '';
+    let spriteRendererExtension = config.svgsprite.sprite_renderer_extension || 'hbs';
+    let stylesheetSpriteUrl = config.svgsprite.stylesheet_sprite_url || '';
+
+    let modes = ['css', 'view', 'defs', 'symbol', 'stack'];
+
+    // renderer definitions
+    const renderer = ['css', 'less', 'scss', 'styl'];
+
     let svgSpriteConfigration = {
         dest: './', // Main output directory
-        log: 'verbose'   // {info|debug|verbose|''|false|null}
+        log: 'verbose',   // {info|debug|verbose|''|false|null}
+        variables: {
+            stylesheetSpriteUrl: stylesheetSpriteUrl
+        }
     };
 
     // shape
     svgSpriteConfigration['shape'] = {
         id: { // SVG shape ID related options
             separator: '__', // Separator for directory name traversal
-            _generator: function() { /*...*/ }, // SVG shape ID generator callback
+            _generator: function(name, file) {/**/}, // SVG shape ID generator callback
             pseudo: '~', // File name separator for shape states (e.g. ':hover')
             whitespace: '_' // Whitespace replacement for shape IDs
         },
@@ -655,11 +610,10 @@ function _setupSvgSpriteConfiguration() {
 
     svgSpriteConfigration['mode'] = {};
 
-    let modes = ['css', 'view', 'defs', 'symbol', 'stack']
-
     // global mode settings
-    modes.forEach( (currentMode, index, array) => {
-        const filenameBase = `${config.svgsprite.prefix || ''}${( config.svgsprite.name || 'svg-sprite' )}.${currentMode}${config.svgsprite.suffix || ''}`;
+    modes.forEach( (currentMode) => {
+        const filenameBase = `${spritePrefix}${spriteName}-${currentMode}${spriteSuffix}`;
+
         //prefix + ( config.svgsprite.name || 'svg-sprite' ) + '.css' + suffix;
         const selectorPrefix = filenameBase.replaceAll('\.', '-');
 
@@ -671,16 +625,29 @@ function _setupSvgSpriteConfiguration() {
             bust: false,
             render: {},
             example: {
-                dest: `${filenameBase}-example.html`,
-                template: path.join(tmplSvgSpritePath, currentMode, 'sprite.html')
+                dest: `${filenameBase}-example.html`
             }
         };
 
         // add example templates, if file exists
-        let exampleTemplate = path.join(tmplSvgSpritePath, currentMode, 'sprite.html');
-        if ( fs.existsSync(exampleTemplate) ) {
+        let exampleTemplate = path.join( tmplPath, currentMode, spriteExample );
+        log.info("exampleTemplate: " + exampleTemplate);
+
+        if ( !fs.existsSync(exampleTemplate) ) {
+            // otherwise add common example template, if file exists
+            exampleTemplate = path.join( tmplCommonPath, spriteExample );
+            log.info("exampleTemplate: " + exampleTemplate);
+
+            if ( !fs.existsSync( exampleTemplate ) ) {
+                log.info("Es existiert kein KBS spezifisches Example Template.");
+                exampleTemplate = null;
+            }
+        }
+
+        if ( typechecks.isNotEmpty(exampleTemplate) ) {
             svgSpriteConfigration['mode'][currentMode]['example']['template'] = exampleTemplate;
         }
+
 
         // specific properties
         switch ( currentMode ) {
@@ -700,27 +667,40 @@ function _setupSvgSpriteConfiguration() {
                 break;
         }
 
-        // renderer definitions
-        const renderer = ['css', 'less', 'scss', 'styl'];
+        // renderer Ausgaben
+        renderer.forEach( (currentRenderer) => {
+            let targetFile = `_${filenameBase}`;
 
-        renderer.forEach((currentRenderer, index, array) => {
             svgSpriteConfigration['mode'][currentMode]['render'][currentRenderer] = {
-                dest: path.join(currentRenderer, `${filenameBase}.${currentRenderer}`),
+                dest: targetFile
             };
 
             // add renderer template, if file exists
-            let rendererTemplate = path.join(tmplSvgSpritePath, currentMode, `sprite.${currentRenderer}.hbs`);
-            if ( fs.existsSync(rendererTemplate) ) {
+            let rendererFile = `${spriteRendererPrefix}${currentRenderer}${spriteRendererSuffix}.${spriteRendererExtension}`;
+            let rendererTemplate = path.join(tmplPath, currentMode, rendererFile);
+            log.info("rendererTemplate: " + rendererTemplate);
+
+            if ( !fs.existsSync(rendererTemplate) ) {
+
+                // otherwise add common renderer template, if file exists
+                rendererTemplate = path.join( tmplCommonPath, rendererFile );
+                log.info("rendererTemplate (common): " + rendererTemplate);
+
+                if ( !fs.existsSync( rendererTemplate ) ) {
+                    log.info("Es existiert kein KBS spezifisches Example Template.");
+                    rendererTemplate = null;
+                }
+            }
+
+            if ( typechecks.isNotEmpty(rendererTemplate) ) {
                 svgSpriteConfigration['mode'][currentMode]['render'][currentRenderer]['template'] = rendererTemplate;
             }
         });
-
-        log( `-- ${currentMode} --------------------------------------------------` );
-        log(svgSpriteConfigration['mode'][currentMode]['render']);
     });
 
     return svgSpriteConfigration;
 }
+
 
 /* ==================================================================================================================
  *  # Tasks
@@ -753,28 +733,6 @@ gulp.task('clean-build-resizeimg-images', taskCleanBuildResizeimgImages );
 gulp.task('clean-build-svgsprite-sprite', taskCleanBuildSvgspriteSprite );
 
 /**
- * Task: generate-nsg-sprite
- * runs: taskGenerateNsgSprite function
- */
-gulp.task('generate-nsg-sprite',
-    gulp.series(
-        'clean-build-nsg-sprite',
-        taskGenerateNsgSprite
-    )
-);
-
-/**
- * Task: generate-nsg-sprites
- * runs: taskGenerateNsgSprites function
- */
-gulp.task('generate-nsg-sprites',
-    gulp.series(
-        'generate-nsg-sprite',
-        taskGenerateNsgSprites
-    )
-);
-
-/**
  * Task: generate-resizeimg-scaled-images
  * runs: taskGenerateResizeimgImages function
  */
@@ -786,12 +744,25 @@ gulp.task('generate-resizeimg-images',
 );
 
 /**
+ * Task: generate-nsg-sprite
+ * runs: taskGenerateNsgSprite function
+ */
+gulp.task('generate-nsg-sprite', taskGenerateNsgSprite );
+
+/**
+ * Task: generate-nsg-sprites
+ * runs: taskGenerateNsgSprites function
+ */
+gulp.task('generate-nsg-sprites', taskGenerateNsgSprites );
+
+/**
  * Task: generate-svg-sprite
  * runs: taskGenerateSvgSpriteSprite function
  */
-gulp.task('generate-svgsprite-sprite',
-    gulp.series(
-        'clean-build-svgsprite-sprite',
-        taskGenerateSvgSpriteSprite
-    )
-);
+gulp.task('generate-svgsprite-sprite', taskGenerateSvgSpriteSprite );
+
+/**
+ * Task: generate-svg-sprites
+ * runs: taskGenerateSvgSpriteSprites function
+ */
+gulp.task('generate-svgsprite-sprites', taskGenerateSvgSpriteSprites );
